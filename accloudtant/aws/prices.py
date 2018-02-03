@@ -20,7 +20,7 @@ import re
 import warnings
 import requests
 from tabulate import tabulate
-from accloudtant.utils import fix_lazy_json
+from accloudtant.utils import fix_lazy_json, get_JS_prices
 
 
 class Prices(object):
@@ -169,10 +169,9 @@ def process_ec2(url):
     """
     instances = {}
     pricings = requests.get(url)
-    for html_line in io.StringIO(pricings.content.decode("utf-8")):
-        if 'model:' in html_line:
-            url = re.sub(r".+'(.+)'.*", r"http:\1", html_line.strip())
-            instances = process_model(url, instances)
+    for url in get_JS_prices(url):
+        instances = process_model(url, instances)
+
     return instances
 
 
