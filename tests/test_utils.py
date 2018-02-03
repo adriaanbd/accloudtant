@@ -12,11 +12,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import re
 import codecs
 import accloudtant.utils
 
 
-def test_get_JS_prices(monkeypatch, mock_requests_get):
+def test_extract_data(monkeypatch, mock_requests_get):
     fixture_dir = 'tests/aws/fixtures/'
     source_file = 'current_generation_on_demand.html'
     source = ""
@@ -37,6 +38,9 @@ def test_get_JS_prices(monkeypatch, mock_requests_get):
         '{}pricing-elastic-ips.min.js'.format(base),
     ]
 
+    def get_url(line):
+        return re.sub(r".+'(.+)'.*", r"http:\1", line.strip())
+
     url = 'https://aws.amazon.com/ec2/pricing/on-demand'
 
     monkeypatch.setattr('requests.get', mock_requests_get)
@@ -44,7 +48,7 @@ def test_get_JS_prices(monkeypatch, mock_requests_get):
         url: source,
     })
 
-    urls = list(accloudtant.utils.get_JS_prices(url))
+    urls = list(accloudtant.utils.extract_data(url, 'model:', get_url))
 
     assert(urls == expected_urls)
 

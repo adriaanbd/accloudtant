@@ -20,7 +20,7 @@ import re
 import warnings
 import requests
 from tabulate import tabulate
-from accloudtant.utils import fix_lazy_json, get_JS_prices
+from accloudtant.utils import fix_lazy_json, extract_data
 
 
 class Prices(object):
@@ -167,9 +167,13 @@ def process_ec2(url):
     """
     This function drives the AWS EC2 pricing processing.
     """
+
+    def get_url(line):
+        return re.sub(r".+'(.+)'.*", r"http:\1", line.strip())
+
     instances = {}
     pricings = requests.get(url)
-    for url in get_JS_prices(url):
+    for url in extract_data(url, 'model:', get_url):
         instances = process_model(url, instances)
 
     return instances
@@ -180,16 +184,16 @@ def process_model(url, instances=None):
     Given the URL of a AWS JS pricing table generator, invokes the
     corresponding processing function according to SECTION_NAMES.
     """
+
+    def get_json(line):
+        return re.sub(r".*callback\((.+)\).*", r"\1", line)
+
+
     if instances is None:
         instances = {}
     js_name = url.split('/')[-1]
-    pricing = requests.get(url)
-    content = pricing.content.decode("utf-8").replace("\n", "")
-    for js_line in io.StringIO(content):
-        if 'callback' in js_line:
-            data = fix_lazy_json(re.sub(r".*callback\((.+)\).*",
-                                        r"\1", js_line))
-            data = json.loads(data)
+    for embedded_json in extract_data(url, 'callback', get_json):
+        data = json.loads(fix_lazy_json(embedded_json))
     if js_name not in SECTION_NAMES:
         processor = process_not_implemented
     else:
