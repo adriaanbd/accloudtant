@@ -16,6 +16,39 @@ import codecs
 import accloudtant.utils
 
 
+def test_get_JS_prices(monkeypatch, mock_requests_get):
+    fixture_dir = 'tests/aws/fixtures/'
+    source_file = 'current_generation_on_demand.html'
+    source = ""
+    with open('{}{}'.format(fixture_dir, source_file)) as input_file:
+        source = input_file.read()
+
+    base = 'http://a0.awsstatic.com/pricing/1/ec2/'
+    expected_urls = [
+        '{}linux-od.min.js'.format(base),
+        '{}rhel-od.min.js'.format(base),
+        '{}sles-od.min.js'.format(base),
+        '{}mswin-od.min.js'.format(base),
+        '{}mswinSQL-od.min.js'.format(base),
+        '{}mswinSQLWeb-od.min.js'.format(base),
+        '{}mswinSQLEnterprise-od.min.js'.format(base),
+        '{}pricing-data-transfer-with-regions.min.js'.format(base),
+        '{}pricing-ebs-optimized-instances.min.js'.format(base),
+        '{}pricing-elastic-ips.min.js'.format(base),
+    ]
+
+    url = 'https://aws.amazon.com/ec2/pricing/on-demand'
+
+    monkeypatch.setattr('requests.get', mock_requests_get)
+    mock_requests_get.set_responses({
+        url: source,
+    })
+
+    urls = list(accloudtant.utils.get_JS_prices(url))
+
+    assert(urls == expected_urls)
+
+
 def test_fix_lazy_json():
     bad_json = '{ key: "value" }'.encode('utf-8')
     good_json = '{"key":"value"}'

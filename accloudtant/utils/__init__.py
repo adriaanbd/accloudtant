@@ -15,8 +15,20 @@
 #   limitations under the License.
 
 import io
+import re
+import requests
 import tokenize
 import token
+
+
+def get_JS_prices(url):
+    """
+    This function returns the url to the JS file containing AWS web prices.
+    """
+    pricings = requests.get(url)
+    for html_line in io.StringIO(pricings.content.decode("utf-8")):
+        if 'model:' in html_line:
+            yield re.sub(r".+'(.+)'.*", r"http:\1", html_line.strip())
 
 
 def fix_unquoted(generated_token, valid_tokens):
