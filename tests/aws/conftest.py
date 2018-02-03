@@ -133,31 +133,6 @@ def ec2_client():
 
 
 @pytest.fixture
-def mock_requests_get():
-    class MockRequestsGet(object):
-        def set_responses(self, responses=None):
-            if responses is None:
-                responses = {}
-            self.responses = responses
-
-        def __call__(self, url):
-            self.urls.append(url)
-            if url in self.responses:
-                self.text = self.responses[url]
-            else:
-                self.text = 'Default response'
-            self.content = self.text.encode('utf-8')
-            return self
-
-        def __init__(self, responses=None):
-            self.set_responses(responses)
-            self.urls = []
-            self.text = 'Default response'
-
-    return MockRequestsGet()
-
-
-@pytest.fixture
 def process_ec2():
     class MockProcessEC2(object):
         def set_responses(self, responses=None, unknown=None):
