@@ -16,6 +16,23 @@ import copy
 import accloudtant.aws.prices
 
 
+def test_get_processor():
+    cases = [
+        (
+            "/linux-od.min.js",
+            accloudtant.aws.prices.process_on_demand,
+            'On Demand - Linux',
+        ),
+        (
+            "/linux-od2.min.js",
+            accloudtant.aws.prices.process_not_implemented,
+            'Unknown',
+        ),
+    ]
+    for case in cases:
+        processor, name = accloudtant.aws.prices.get_processor(case[0])
+        assert(processor is case[1])
+
 def test_process_ec2(monkeypatch, mock_requests_get, mock_process_model):
     sample_content = {
         'http://a0.aws.com/pricing/1/ec2/linux-od.min.js': {'linux': {}, },

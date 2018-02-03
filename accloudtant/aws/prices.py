@@ -179,6 +179,16 @@ def process_ec2(url):
     return instances
 
 
+def get_processor(url):
+    """
+    Retrieve the processor function according to the JS file's name
+    in `url`.
+    """
+    section_not_found = { 'process': process_not_implemented, }
+    key = url.split('/')[-1]
+    processor = SECTION_NAMES.get(key, section_not_found)['process']
+    return processor, key
+
 def process_model(url, instances=None):
     """
     Given the URL of a AWS JS pricing table generator, invokes the
@@ -188,17 +198,12 @@ def process_model(url, instances=None):
     def get_json(line):
         return re.sub(r".*callback\((.+)\).*", r"\1", line)
 
-
     if instances is None:
         instances = {}
-    js_name = url.split('/')[-1]
     for embedded_json in extract_data(url, 'callback', get_json):
         data = json.loads(fix_lazy_json(embedded_json))
-    if js_name not in SECTION_NAMES:
-        processor = process_not_implemented
-    else:
-        processor = SECTION_NAMES[js_name]['process']
-    instances = processor(data, js_name, instances)
+    processor, name = get_processor(url)
+    instances = processor(data, name, instances)
     return instances
 
 
