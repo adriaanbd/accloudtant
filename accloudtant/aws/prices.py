@@ -23,82 +23,8 @@ from tabulate import tabulate
 from accloudtant.utils import fix_lazy_json, extract_data
 
 
-class Prices(object):
-    def __init__(self):
-        with warnings.catch_warnings(record=True) as price_warnings:
-            base_url = 'https://aws.amazon.com/ec2/'
-            curr_url = '{}pricing/on-demand/'.format(base_url)
-            curr_ri_url = '{}pricing/reserved-instances/pricing/'.format(
-                base_url
-            )
-            prev_url = '{}previous-generation/'.format(base_url)
-            self.prices = process_ec2(curr_url)
-            prices_curr_ri = process_ec2(curr_ri_url)
-            prices_prev = process_ec2(prev_url)
-            for kind in self.prices:
-                if kind in prices_prev:
-                    self.update_previous_generation_prices(prices_prev, kind)
-                if kind in prices_curr_ri:
-                    self.update_ri_prices(prices_curr_ri, kind)
-            self.output = print_prices(self.prices)
-            for warning in price_warnings:
-                self.output += "\n{}".format(warning.message)
-
-    def update_ri_prices(self, prices_ri, kind):
-        empty_ri = {
-            'yrTerm1Standard': {
-                'noUpfront': {
-                    'effectiveHourly': None,
-                },
-                'partialUpfront': {
-                    'effectiveHourly': None,
-                },
-                'allUpfront': {
-                    'effectiveHourly': None,
-                },
-            },
-            'yrTerm3Standard': {
-                'noUpfront': {
-                    'effectiveHourly': None,
-                },
-                'partialUpfront': {
-                    'effectiveHourly': None,
-                },
-                'allUpfront': {
-                    'effectiveHourly': None,
-                },
-            },
-        }
-        for region in self.prices[kind]:
-            for instance_type in self.prices[kind][region]:
-                local_prices = self.prices[kind][region][instance_type]
-                ri_type = prices_ri[kind][region].get(
-                    instance_type,
-                    {'ri': empty_ri},
-                )
-                if 'ri' in ri_type:
-                    local_prices['ri'] = ri_type['ri']
-
-    def update_previous_generation_prices(self, prices_prev, kind):
-        for region in self.prices[kind]:
-            region_prices = self.prices[kind][region]
-            if region in prices_prev[kind]:
-                region_prices.update(prices_prev[kind][region])
-
-    def __repr__(self):
-        return self.output
-
-
-def eval_price_exists(price):
-    return price or 'N/A'
-
-
-def print_prices(instances=None, region='us-east-1'):
-    """ This function prints the results from the AWS EC2 pricing
-        processing."""
-    if 'AWS_DEFAULT_REGION' in environ:
-        region = environ['AWS_DEFAULT_REGION']
-    empty_ri = {
+def empty_ri():
+    return {
         'yrTerm1Standard': {
             'noUpfront': {
                 'effectiveHourly': None,
@@ -122,6 +48,59 @@ def print_prices(instances=None, region='us-east-1'):
             },
         },
     }
+
+
+class Prices(object):
+    def __init__(self):
+        with warnings.catch_warnings(record=True) as price_warnings:
+            base_url = 'https://aws.amazon.com/ec2/'
+            curr_url = '{}pricing/on-demand/'.format(base_url)
+            curr_ri_url = '{}pricing/reserved-instances/pricing/'.format(
+                base_url
+            )
+            prev_url = '{}previous-generation/'.format(base_url)
+            self.prices = process_ec2(curr_url)
+            prices_curr_ri = process_ec2(curr_ri_url)
+            prices_prev = process_ec2(prev_url)
+            for kind in self.prices:
+                if kind in prices_prev:
+                    self.update_previous_generation_prices(prices_prev, kind)
+                if kind in prices_curr_ri:
+                    self.update_ri_prices(prices_curr_ri, kind)
+            self.output = print_prices(self.prices)
+            for warning in price_warnings:
+                self.output += "\n{}".format(warning.message)
+
+    def update_ri_prices(self, prices_ri, kind):
+        for region in self.prices[kind]:
+            for instance_type in self.prices[kind][region]:
+                local_prices = self.prices[kind][region][instance_type]
+                ri_type = prices_ri[kind][region].get(
+                    instance_type,
+                    {'ri': empty_ri()},
+                )
+                if 'ri' in ri_type:
+                    local_prices['ri'] = ri_type['ri']
+
+    def update_previous_generation_prices(self, prices_prev, kind):
+        for region in self.prices[kind]:
+            region_prices = self.prices[kind][region]
+            if region in prices_prev[kind]:
+                region_prices.update(prices_prev[kind][region])
+
+    def __repr__(self):
+        return self.output
+
+
+def eval_price_exists(price):
+    return price or 'N/A'
+
+
+def print_prices(instances=None, region='us-east-1'):
+    """ This function prints the results from the AWS EC2 pricing
+        processing."""
+    if 'AWS_DEFAULT_REGION' in environ:
+        region = environ['AWS_DEFAULT_REGION']
     headers = ['Type',
                'On Demand',
                '1y No Upfront',
@@ -134,7 +113,7 @@ def print_prices(instances=None, region='us-east-1'):
         for size in sorted(instances[ec2_kind][region].keys()):
             instance_size = instances[ec2_kind][region][size]
             on_demand = instance_size.get('od', {})
-            reserved_prices = instance_size.get('ri', empty_ri)
+            reserved_prices = instance_size.get('ri', empty_ri())
             rsrvd_1yr = reserved_prices['yrTerm1Standard']
             rsrvd_3yr = reserved_prices['yrTerm3Standard']
             no_upfront = 'noUpfront'
