@@ -21,7 +21,7 @@ def test_extract_data(monkeypatch, mock_requests_get):
     fixture_dir = 'tests/aws/fixtures/'
     source_file = 'current_generation_on_demand.html'
     source = ""
-    with open('{}{}'.format(fixture_dir, source_file)) as input_file:
+    with codecs.open('{}{}'.format(fixture_dir, source_file), encoding='utf-8') as input_file:
         source = input_file.read()
 
     base = 'http://a0.awsstatic.com/pricing/1/ec2/'
