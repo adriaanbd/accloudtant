@@ -50,6 +50,57 @@ def empty_ri():
     }
 
 
+import asyncio
+
+
+@asyncio.coroutine
+def get_js_urls(url):
+    """
+    This function drives the AWS EC2 pricing processing.
+    """
+
+    def get_url(line):
+        return re.sub(r".+'(.+)'.*", r"http:\1", line.strip())
+
+    pricings = requests.get(url)
+    for JS_url in extract_data(url, 'model:', get_url):
+        yield JS_url
+
+
+@asyncio.coroutine
+def get_json(url):
+    """
+    Given the URL of a AWS JS pricing table generator, invokes the
+    corresponding processing function according to SECTION_NAMES.
+    """
+
+    def get_json(line):
+        return re.sub(r".*callback\((.+)\).*", r"\1", line)
+
+    for embedded_json in extract_data(url, 'callback', get_json):
+        yield json.loads(fix_lazy_json(embedded_json))
+
+
+def get_prices(json_prices):
+    for region_data in json_prices['config']['regions']:
+        region = region_data['region']
+        print("{} {}".format(
+            region,
+            len(region_data.get('instanceTypes', [])),
+        ))
+
+
+class WebPrices(object):
+    def __init__(self, prices=None):
+        if prices is None:
+            self.prices = []
+            for js_url in get_js_urls('https://aws.amazon.com/ec2/pricing/on-demand/'):
+                for json_prices in get_json(js_url):
+                    get_prices(json_prices)
+        else:
+            self.prices = prices
+
+
 class Prices(object):
     def __init__(self):
         with warnings.catch_warnings(record=True) as price_warnings:
@@ -167,6 +218,7 @@ def get_processor(url):
     key = url.split('/')[-1]
     processor = SECTION_NAMES.get(key, section_not_found)['process']
     return processor, key
+
 
 def process_model(url, instances=None):
     """
