@@ -50,7 +50,10 @@ def empty_ri():
     }
 
 
-import asyncio
+try:
+    import trollius as asyncio
+except ImportError:
+    import asyncio
 
 
 @asyncio.coroutine
