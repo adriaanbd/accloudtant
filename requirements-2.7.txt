@@ -30,3 +30,4 @@ s3transfer==0.1.12
 six==1.11.0
 statistics==1.0.3.5
 tabulate==0.7.5
+trollius==2.1
